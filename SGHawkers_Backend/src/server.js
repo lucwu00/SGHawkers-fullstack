@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { setupWebSocket } from "./websocket/wsManager.js";
+import { initDatabase } from "./db/init.js";
 import { requireCustomer, requireStaff } from "./middleware/auth.js";
 
 import authRouter    from "./routes/auth.js";
@@ -28,7 +29,7 @@ app.use(cors({
     "http://localhost:5173",   // customer dev
     "http://localhost:5174",   // hawker dev
     "http://localhost:3000",
-    ...(process.env.ALLOWED_ORIGINS?.split(",") || []),
+    ...(process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()).filter(Boolean) || []),
   ],
   credentials: true,
 }));
@@ -71,8 +72,8 @@ app.use((err, req, res, next) => {
 // ─── START ────────────────────────────────────────────────────────────────────
 setupWebSocket(server);
 
-server.listen(PORT, () => {
+initDatabase().catch(err => console.error("❌ Database init failed:", err.message)).finally(() => server.listen(PORT, () => {
   console.log(`\n🍜 SGHawkers API running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket ready at ws://localhost:${PORT}/ws`);
   console.log(`🗄  Database: ${process.env.DB_NAME || "sghawkers"} @ ${process.env.DB_HOST || "localhost"}`);
-});
+}));
